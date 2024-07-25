@@ -1,8 +1,10 @@
 #include <Arduino.h>
 
+#define ONBOARD_LED 22 // Onboard LED pin
+
 // General sensitivity of the step detection
 // Eg: 800 = more sensitive, 1600 = less sensitive
-#define STEP_SENSITIVITY 30.0
+#define STEP_SENSITIVITY 25.0
 #define AUDIO_VOLUME 30 // Volume for the audio player, adjust as needed 0 - 30
 #define SDA_PIN 19      // I2C SDA pin
 #define SCL_PIN 23      // I2C SCL pin
@@ -29,7 +31,12 @@ void accelPoll();
 
 void setup()
 {
-  Serial.begin(115200);
+  pinMode(ONBOARD_LED, OUTPUT);
+  digitalWrite(ONBOARD_LED, HIGH);
+  delay(2000); // Delay for 1 second to allow the serial monitor to connect
+  digitalWrite(ONBOARD_LED, LOW);
+
+  // Serial.begin(115200);
   initAudio();
   initAccel();
   Serial.println("Setup complete.");
@@ -37,20 +44,16 @@ void setup()
 
 void loop()
 {
+
   accelPoll();
   if (stepDetected())
   {
     handleAudioPlayback();
+    // delay(100); // Sample rate control
   }
-  delay(10); // Sample rate control
+  // digitalWrite(LED_BUILTIN , HIGH);
+
 }
-
-
-
-
-
-
-
 
 void initAudio()
 {
@@ -171,11 +174,13 @@ void calibrate()
       avg += m;
     }
 
-    
-    if (pass) {
+    if (pass)
+    {
       Serial.println("Calibration complete.");
       break;
-    } else {
+    }
+    else
+    {
       avg /= bufferSize();
       calibration = avg;
     }
