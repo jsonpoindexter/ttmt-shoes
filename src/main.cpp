@@ -58,6 +58,10 @@ void handleAudioPlayback();
 
 void accelPoll();
 
+void builtInLEDOn();
+
+void builtInLEDOff();
+
 void setup() {
     pinMode(ONBOARD_LED, OUTPUT);
     digitalWrite(ONBOARD_LED, HIGH);
@@ -88,6 +92,23 @@ void loop() {
     // digitalWrite(LED_BUILTIN , HIGH);
 
 }
+
+///////////
+// BOARD //
+///////////
+// NOTE: The onboard LED is active low.
+void builtInLEDOn() {
+    digitalWrite(LED_BUILTIN, LOW);
+}
+
+void builtInLEDOff() {
+    digitalWrite(LED_BUILTIN, HIGH);
+}
+
+
+///////////
+// AUDIO //
+///////////
 
 void initAudio() {
     player.begin();
