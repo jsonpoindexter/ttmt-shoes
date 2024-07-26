@@ -63,10 +63,8 @@ void builtInLEDOn();
 void builtInLEDOff();
 
 void setup() {
-    pinMode(ONBOARD_LED, OUTPUT);
-    digitalWrite(ONBOARD_LED, HIGH);
-    delay(2000); // Delay for 1 second to allow the serial monitor to connect
-    digitalWrite(ONBOARD_LED, LOW);
+    pinMode(LED_BUILTIN, OUTPUT);
+    builtInLEDOn();
 
     Serial.begin(115200);
 
@@ -80,14 +78,18 @@ void setup() {
     initAccel();
 
     Serial.println("Setup complete.");
+
+    builtInLEDOff();
 }
 
 void loop() {
     handleOTA();
     accelPoll();
     if (stepDetected()) {
+        builtInLEDOn();
         handleAudioPlayback();
-        // delay(100); // Sample rate control
+        delay(350); // Sample rate control
+        builtInLEDOff();
     }
     // digitalWrite(LED_BUILTIN , HIGH);
 
