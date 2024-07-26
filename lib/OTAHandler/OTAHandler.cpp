@@ -3,12 +3,6 @@
 
 void initOTA(const char *ssid, const char *password, const char *hostname) {
     Serial.println("Initializing OTA");
-    Serial.print("SSID: ");
-    Serial.println(ssid);
-    Serial.print("Password: ");
-    Serial.println(password);
-    Serial.print("Hostname: ");
-    Serial.println(hostname);
     WiFi.hostname(hostname);
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
@@ -19,6 +13,8 @@ void initOTA(const char *ssid, const char *password, const char *hostname) {
     // Print out IP address
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
+    Serial.print("Hostname: ");
+    Serial.println(WiFi.getHostname());
 
     ArduinoOTA.onStart([]() {
         String type;
