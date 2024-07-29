@@ -86,14 +86,6 @@ void setup() {
 
 void loop() {
     handleOTA();
-    accelPoll();
-    if (stepDetected()) {
-        builtInLEDOn();
-        handleAudioPlayback();
-        delay(350); // Sample rate control
-        builtInLEDOff();
-    }
-    // digitalWrite(LED_BUILTIN , HIGH);
 
     EVERY_N_MILLISECONDS(10, lastTime, {
         if (detectStep()) {
