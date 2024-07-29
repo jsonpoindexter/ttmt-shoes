@@ -31,8 +31,12 @@ const char *uniqueHostname = uniqueHostnameStr.c_str();
 
 // ########## AUDIO PLAYER ##########
 #include "DYPlayerArduino.h"
+#include "DY_SV5W.h"
 
-DY::Player player(&Serial2);
+// DY-SV5W pins
+const std::array<int, 8> DY_SV5W_PINS = {16, 17, 4, 0, 2, 15, 13, 12};
+const int DY_SV5W_BUSY_PIN = 12;
+DY_SV5W player(DY_SV5W_PINS, DY_SV5W_BUSY_PIN, PlaybackMode::CombinationMode1);
 
 // ########## PRESSURE SENSOR ##########
 #include "PressureSensor.h"
@@ -84,18 +88,16 @@ void setup() {
     builtInLEDOff();
 }
 
+bool lastIsPlaying = false;
+
 void loop() {
     handleOTA();
-    accelPoll();
-    if (stepDetected()) {
-        builtInLEDOn();
-        handleAudioPlayback();
-        delay(350); // Sample rate control
-        builtInLEDOff();
-    }
-    // digitalWrite(LED_BUILTIN , HIGH);
-
     EVERY_N_MILLISECONDS(10, lastTime, {
+        if (player.isPlaying() != lastIsPlaying) {
+            lastIsPlaying = player.isPlaying();
+            Serial.printf("Is playing: %d\n", lastIsPlaying);
+        }
+
         if (detectStep()) {
             builtInLEDOn();
             handleAudioPlayback();
@@ -122,12 +124,12 @@ void builtInLEDOff() {
 ///////////
 
 void initAudio() {
-    player.begin();
-    player.setVolume(AUDIO_VOLUME);
+
 }
 
 void handleAudioPlayback() {
-    player.playSpecified(1);
+    player.playTrack(1);
+    player.stopPlaying();
 }
 
 
