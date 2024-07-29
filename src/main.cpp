@@ -1,6 +1,11 @@
-#include <Arduino.h>
+#include "Arduino.h"
 
-// ########## OTA  ##########
+/* ########## LED CONTROLLER ########## */
+#include "LEDController.h"
+
+LEDController ledController(LED_BUILTIN);
+
+/* ########## OTA  ########## */
 #include <OTAHandler.h>
 #include <secrets.h>
 #include <string>
@@ -22,153 +27,75 @@ std::string formatUniqueMacAddress(uint64_t mac) {
 std::string uniqueHostnameStr = std::string(hostname) + "-" + formatUniqueMacAddress(ESP.getEfuseMac());
 const char *uniqueHostname = uniqueHostnameStr.c_str();
 
-// General sensitivity of the step detection
-// Eg: 800 = more sensitive, 1600 = less sensitive
-#define STEP_SENSITIVITY 75
-#define AUDIO_VOLUME 30 // Volume for the audio player, adjust as needed 0 - 30
-#define SDA_PIN 19      // I2C SDA pin
-#define SCL_PIN 23      // I2C SCL pin
+/* ########## AUDIO PLAYER ########## */
+#include <AudioManager.h>
 
-// ########## AUDIO PLAYER ##########
-#include "DYPlayerArduino.h"
+AudioManager player;
 
-DY::Player player(&Serial2);
+/* ########## SENSOR MANAGER ########## */
+#include <Wire.h>
+#include "SensorManager.h"
 
-// ########## PRESSURE SENSOR ##########
-#include "PressureSensor.h"
+#define MPU9250_INT_PIN 18
+SensorManager sensorManager(Wire, bfs::Mpu9250::I2C_ADDR_PRIM, MPU9250_INT_PIN);
 
-// Minimum interval between steps in milliseconds
-const unsigned long minStepInterval = 300;
-#define VELOSTAT_PIN 33
-PressureSensor pressureSensor(VELOSTAT_PIN);
+/* ########## GAIT ANALYZER ########## */
+#include <GaitAnalyzer.h>
 
-// Forward declarations are needed for the functions to be recognized
-void initAudio();
-
-bool detectStep();
-
-void handleAudioPlayback();
-
-void builtInLEDOn();
-
-void builtInLEDOff();
-
-#define EVERY_N_MILLISECONDS(interval, lastTime, action) do { \
-    static unsigned long lastTime = millis(); \
-    unsigned long currentTime = millis(); \
-    if (currentTime - lastTime >= interval) { \
-        lastTime = currentTime; \
-        action; \
-    } \
-} while(0)
+GaitAnalyzer gaitAnalyzer;
 
 void setup() {
-    pinMode(LED_BUILTIN, OUTPUT);
-    builtInLEDOn();
+    ledController.turnOn();
 
     Serial.begin(115200);
 
+    /* ########## OTA ########## */
     initOTA(
             ssid,
             password,
             uniqueHostname
     );
 
-    initAudio();
+    /* ########## SENSOR MANAGER ########## */
+    if (!sensorManager.begin()) {
+        Serial.println("Failed to initialize the sensor!");
+        while (true);
+    }
 
-    // Fill the sample buffer with initial values
-    pressureSensor.fillSampleBuffer();
+
+    /* ########## GAIT MANAGER ########## */
+    // Set up callbacks
+    gaitAnalyzer.setSwingCallback([]() {
+        Serial.println("Swing state callback triggered.");
+    });
+    gaitAnalyzer.setInitialContactCallback([]() {
+        Serial.println("Initial contact state callback triggered.");
+    });
+    gaitAnalyzer.setMidStanceCallback([]() {
+        player.playAudio();
+        Serial.println("Mid stance state callback triggered.");
+    });
+    gaitAnalyzer.setTerminalStanceCallback([]() {
+        Serial.println("Terminal stance state callback triggered.");
+    });
+
+    /* ########## AUDIO ########## */
+    player.initialize();
 
     Serial.println("Setup complete.");
-
-    builtInLEDOff();
+    ledController.turnOff();
 }
+
+float ax, ay, az, gx, gy, gz;
 
 void loop() {
     handleOTA();
 
-    EVERY_N_MILLISECONDS(10, lastTime, {
-        if (detectStep()) {
-            builtInLEDOn();
-            handleAudioPlayback();
-            builtInLEDOff();
-        }
-    });
-}
 
-///////////
-// BOARD //
-///////////
-// NOTE: The onboard LED is active low.
-void builtInLEDOn() {
-    digitalWrite(LED_BUILTIN, LOW);
-}
-
-void builtInLEDOff() {
-    digitalWrite(LED_BUILTIN, HIGH);
-}
-
-
-///////////
-// AUDIO //
-///////////
-
-void initAudio() {
-    player.begin();
-    player.setVolume(AUDIO_VOLUME);
-}
-
-void handleAudioPlayback() {
-    player.playSpecified(1);
-}
-
-
-////////////////////
-// STEP DETECTION //
-////////////////////
-enum GaitStatus {
-    STANCE,
-    SWING
-};
-
-int sensorValue = 0;
-
-// Determine the Stance vs Swing phase of the gait cycle
-GaitStatus determineGaitStatus() {
-    sensorValue = pressureSensor.read();
-    if (sensorValue < STEP_SENSITIVITY) {
-        return STANCE;
+    if (sensorManager.readSensorData(ax, ay, az, gx, gy, gz)) {
+        unsigned long currentTime = millis();
+        gaitAnalyzer.processStepDetection(ax, ay, az, gx, gy, gz, currentTime);
     }
-    return SWING;
+
 }
 
-static bool lastStepDetected = false;
-static unsigned long lastStepTime = 0;
-static unsigned long lastStepDuration = 0;
-static unsigned long lastStepInterval = 0;
-static unsigned long lastStepCount = 0;
-static unsigned long lastStepCountInterval = 0;
-static unsigned long lastStepCountTime = 0;
-
-bool detectStep() {
-    unsigned long currentTime = millis();
-    GaitStatus gaitStatus = determineGaitStatus();
-//    Serial.printf("Sensor Value: %d | Gait Status: %d\n", sensorValue, gaitStatus);
-    if (gaitStatus == STANCE) {
-        if (!lastStepDetected && (currentTime - lastStepTime >= minStepInterval)) {
-            lastStepDetected = true;
-            lastStepTime = currentTime;
-            lastStepDuration = lastStepTime - lastStepInterval;
-            lastStepInterval = lastStepTime;
-            lastStepCount++;
-            lastStepCountInterval = lastStepTime - lastStepCountTime;
-            lastStepCountTime = lastStepTime;
-            Serial.printf("Step detected! Duration: %lu | Interval: %lu | Count: %lu | Count Interval: %lu\n",
-                          lastStepDuration, lastStepInterval, lastStepCount, lastStepCountInterval);
-            return true;
-        }
-    } else {
-        lastStepDetected = false;
-    }
-    return false;
-}
