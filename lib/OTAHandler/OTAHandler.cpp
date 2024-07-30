@@ -1,21 +1,8 @@
 #include "OTAHandler.h"
 #include <WiFi.h>
 
-void initOTA(const char *ssid, const char *password, const char *hostname) {
+void initOTA() {
     Serial.println("Initializing OTA");
-    WiFi.hostname(hostname);
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(1000);
-        Serial.println("Connecting to WiFi...");
-    }
-    Serial.println("Connected to WiFi");
-    // Print out IP address
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
-    Serial.print("Hostname: ");
-    Serial.println(WiFi.getHostname());
-
     ArduinoOTA.onStart([]() {
         String type;
         if (ArduinoOTA.getCommand() == U_FLASH)

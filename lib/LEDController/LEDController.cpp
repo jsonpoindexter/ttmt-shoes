@@ -6,10 +6,10 @@ LEDController::LEDController(int pin) : pin(pin) {
     turnOff();
 }
 
-void LEDController::turnOn() {
+void LEDController::turnOn() const {
     digitalWrite(pin, LOW); // Active low
 }
 
-void LEDController::turnOff() {
+void LEDController::turnOff() const {
     digitalWrite(pin, HIGH); // Active low
 }

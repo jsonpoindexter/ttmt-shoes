@@ -5,9 +5,9 @@ class LEDController {
 public:
     explicit LEDController(int pin);
 
-    void turnOn();
+    void turnOn() const;
 
-    void turnOff();
+    void turnOff() const;
 
 private:
     int pin;

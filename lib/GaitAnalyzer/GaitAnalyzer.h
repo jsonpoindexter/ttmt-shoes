@@ -2,10 +2,11 @@
 #define GAITANALYZER_H
 
 #include <functional>
+#include "Logger.h"
 
 class GaitAnalyzer {
 public:
-    explicit GaitAnalyzer(float baseThreshold = 1.5, unsigned long stepInterval = 300);
+    explicit GaitAnalyzer(Logger &logger, float baseThreshold = 1.5, unsigned long stepInterval = 300);
 
     void processStepDetection(float ax, float ay, float az, float gx, float gy, float gz, unsigned long currentTime);
 
@@ -44,6 +45,8 @@ private:
     std::function<void()> terminalStanceCallback;
 
     static void invokeCallback(const std::function<void()> &callback);
+
+    Logger &logger;
 };
 
 #endif

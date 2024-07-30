@@ -3,11 +3,11 @@
 
 #include <utility>
 
-GaitAnalyzer::GaitAnalyzer(float baseThreshold, unsigned long stepInterval)
+GaitAnalyzer::GaitAnalyzer(Logger &logger, float baseThreshold, unsigned long stepInterval)
         : baseThreshold(baseThreshold), stepInterval(stepInterval), lastStepTime(0), stepCount(0),
           previousMagnitude(0), previousDelta(0), isPeak(false), currentState(SWING),
           swingCallback(nullptr), initialContactCallback(nullptr), midStanceCallback(nullptr),
-          terminalStanceCallback(nullptr) {}
+          terminalStanceCallback(nullptr), logger(logger) {}
 
 void GaitAnalyzer::processStepDetection(float ax, float ay, float az, float gx, float gy, float gz,
                                         unsigned long currentTime) {
@@ -18,29 +18,9 @@ void GaitAnalyzer::processStepDetection(float ax, float ay, float az, float gx, 
     float dynamicThreshold = baseThreshold * (1.0 + 0.1 * abs(previousMagnitude - magnitude));
     float deltaMagnitude = abs(magnitude - previousMagnitude);
 
-    // Logging raw sensor data and calculated values
-    Serial.print("Time: ");
-    Serial.print(currentTime);
-    Serial.print(" ms, ax: ");
-    Serial.print(ax);
-    Serial.print(" m/s^2, ay: ");
-    Serial.print(ay);
-    Serial.print(" m/s^2, az: ");
-    Serial.print(az);
-    Serial.print(" m/s^2, gx: ");
-    Serial.print(gx);
-    Serial.print(" rad/s, gy: ");
-    Serial.print(gy);
-    Serial.print(" rad/s, gz: ");
-    Serial.print(gz);
-    Serial.print(" rad/s, Magnitude: ");
-    Serial.print(magnitude);
-    Serial.print(" m/s^2, Gyro Magnitude: ");
-    Serial.print(gyroMagnitude);
-    Serial.print(" rad/s, Dynamic Threshold: ");
-    Serial.print(dynamicThreshold);
-    Serial.print(", Delta Magnitude: ");
-    Serial.println(deltaMagnitude);
+    logger.printf(
+            "Time: %lu ms, ax: %.2f m/s^2, ay: %.2f m/s^2, az: %.2f m/s^2, gx: %.2f rad/s, gy: %.2f rad/s, gz: %.2f rad/s, Magnitude: %.2f m/s^2, Gyro Magnitude: %.2f rad/s, Dynamic Threshold: %.2f, Delta Magnitude: %.2f\n",
+            currentTime, ax, ay, az, gx, gy, gz, magnitude, gyroMagnitude, dynamicThreshold, deltaMagnitude);
 
     // State machine for gait cycle
     switch (currentState) {
@@ -48,7 +28,7 @@ void GaitAnalyzer::processStepDetection(float ax, float ay, float az, float gx, 
             if (gyroMagnitude < 0.5 && deltaMagnitude < dynamicThreshold &&
                 (currentTime - lastStepTime) > stepInterval) {
                 currentState = INITIAL_CONTACT;
-                Serial.println("Entering INITIAL_CONTACT state...");
+                logger.println("Entering INITIAL_CONTACT state...");
                 invokeCallback(initialContactCallback);
             }
             break;
@@ -57,7 +37,7 @@ void GaitAnalyzer::processStepDetection(float ax, float ay, float az, float gx, 
             if (gyroMagnitude > 1.0 && deltaMagnitude > dynamicThreshold) {
                 isPeak = true;
                 currentState = MID_STANCE;
-                Serial.println("Entering MID_STANCE state...");
+                logger.println("Entering MID_STANCE state...");
                 invokeCallback(midStanceCallback);
             }
             break;
@@ -68,10 +48,9 @@ void GaitAnalyzer::processStepDetection(float ax, float ay, float az, float gx, 
                 isPeak = false;
                 stepCount++;
                 lastStepTime = currentTime;
-                Serial.print("Step confirmed! Total steps: ");
-                Serial.println(stepCount);
+                logger.printf("Step confirmed! Total steps: %d\n", stepCount);
                 currentState = TERMINAL_STANCE;
-                Serial.println("Entering TERMINAL_STANCE state...");
+                logger.println("Entering TERMINAL_STANCE state...");
                 invokeCallback(terminalStanceCallback);
             }
             break;
@@ -79,7 +58,7 @@ void GaitAnalyzer::processStepDetection(float ax, float ay, float az, float gx, 
         case TERMINAL_STANCE:
             if (gyroMagnitude < 0.5 && deltaMagnitude < dynamicThreshold) {
                 currentState = SWING;
-                Serial.println("Entering SWING state...");
+                logger.println("Entering SWING state...");
                 invokeCallback(swingCallback);
             }
             break;

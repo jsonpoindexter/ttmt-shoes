@@ -3,10 +3,11 @@
 
 #include <Wire.h>
 #include "mpu9250.h"
+#include "Logger.h"
 
 class SensorManager {
 public:
-    SensorManager(TwoWire &wire, uint8_t address, uint8_t intPin);
+    SensorManager(TwoWire &wire, uint8_t address, uint8_t intPin, Logger &logger);
 
     bool begin();
 
@@ -26,6 +27,7 @@ private:
 
     float filteredAx = 0, filteredAy = 0, filteredAz = 0;
     float filteredGx = 0, filteredGy = 0, filteredGz = 0;
+    Logger &logger;
 };
 
 #endif
