@@ -94,7 +94,7 @@ bool SensorManager::readSensorData(float &ax, float &ay, float &az, float &gx, f
             filteredGz = ALPHA * filteredGz + (1 - ALPHA) * gz;
 
             // Transform axis if sensor is rotated
-            transformAxis(filteredAx, filteredAy, filteredAz, filteredGx, filteredGy, filteredGz);
+//            transformAxis(filteredAx, filteredAy, filteredAz, filteredGx, filteredGy, filteredGz);
 
             ax = filteredAx;
             ay = filteredAy;

@@ -5,7 +5,7 @@
 
 class GaitAnalyzer {
 public:
-    explicit GaitAnalyzer(float baseThreshold = 1.5, unsigned long stepInterval = 300);
+    explicit GaitAnalyzer(float baseThreshold = 2.5, unsigned long stepInterval = 300);
 
     void processStepDetection(float ax, float ay, float az, float gx, float gy, float gz, unsigned long currentTime);
 
@@ -21,21 +21,21 @@ public:
     void setTerminalStanceCallback(std::function<void()> callback);
 
 private:
-    const float baseThreshold;
-    const unsigned long stepInterval;
-    unsigned long lastStepTime;
-    int stepCount;
-    float previousMagnitude;
-    float previousDelta;
-    bool isPeak;
+    const float baseThreshold; // Base threshold for step detection. Dynamic threshold is adjusted based on this value. Lower value is more sensitive.
+    const unsigned long stepInterval; // Minimum time between steps
+    unsigned long lastStepTime; // Time of last step
+    int stepCount; // Total number of steps
+    float previousMagnitude; // Previous magnitude of acceleration
+    float previousDelta; // Previous delta magnitude of acceleration
+    bool isPeak; // Flag to indicate peak of step
 
-    enum GaitState {
+    enum GaitState { // State machine for gait cycle
         SWING,
         INITIAL_CONTACT,
         MID_STANCE,
         TERMINAL_STANCE
     };
-    GaitState currentState;
+    GaitState currentState; // Current state of gait cycle
 
     // Callback functions
     std::function<void()> swingCallback;
