@@ -83,6 +83,7 @@ void setup() {
     player.initialize();
 
     Serial.println("Setup complete.");
+    player.playAudio();
     ledController.turnOff();
 }
 
