@@ -70,9 +70,11 @@ void setup() {
     });
     gaitAnalyzer.setInitialContactCallback([]() {
         Serial.println("Initial contact state callback triggered.");
+        ledController.turnOn();
+        player.playAudio();
+        ledController.turnOff();
     });
     gaitAnalyzer.setMidStanceCallback([]() {
-        player.playAudio();
         Serial.println("Mid stance state callback triggered.");
     });
     gaitAnalyzer.setTerminalStanceCallback([]() {
